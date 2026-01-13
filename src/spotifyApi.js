@@ -20,12 +20,31 @@ export async function createPlaylist(token, userId, { name, isPublic }) {
     },
     body: JSON.stringify({
       name,
-      public: Boolean(isPublic), // Public seçildiyse true, private seçildiyse false olmalı
+      public: Boolean(isPublic), // public=true => profilde görünür; false => private (profilde/aramada görünmez)
       description: "Created with Spotify Playlist Oluşturucu",
     }),
   });
+
   if (!res.ok) throw new Error(await res.text());
   return await res.json();
+}
+
+// Create sonrası state'i garanti etmek için (public/private zorlamak)
+export async function changePlaylistDetails(token, playlistId, { isPublic, name, description }) {
+  const res = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}`, {
+    method: "PUT",
+    headers: {
+      ...authHeader(token),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      ...(typeof name === "string" ? { name } : {}),
+      ...(typeof description === "string" ? { description } : {}),
+      ...(typeof isPublic === "boolean" ? { public: isPublic } : {}),
+    }),
+  });
+
+  if (!res.ok) throw new Error(await res.text());
 }
 
 export async function searchTrack(token, { title, artist }) {
@@ -45,7 +64,6 @@ export async function searchTrack(token, { title, artist }) {
 /**
  * uris: ["spotify:track:..."]
  * onProgress: (info) => void
- *   info = { currentBatch, totalBatches, addedSoFar, total }
  */
 export async function addTracksToPlaylist(token, playlistId, uris, onProgress) {
   const total = uris.length;
@@ -88,7 +106,6 @@ export async function addTracksToPlaylist(token, playlistId, uris, onProgress) {
       doneBatch: true,
     });
 
-    // Çok hızlı ardışık isteklerde rate limit riskini azaltır (opsiyonel ama faydalı)
     await new Promise((r) => setTimeout(r, 150));
   }
 }

@@ -33,10 +33,8 @@ function normalizeLine(line) {
   let s = line.trim();
   if (!s) return null;
 
-  // "1. ..." gibi numaraları temizle
   s = s.replace(/^\s*\d+\s*[\.\)\-]\s*/, "").trim();
 
-  // "Şarkı – Artist" veya "Şarkı - Artist"
   const parts = s.split(/\s[-–]\s/);
   if (parts.length >= 2) {
     const title = parts[0].trim();
@@ -44,7 +42,6 @@ function normalizeLine(line) {
     return title ? { title, artist } : null;
   }
 
-  // Sadece başlık girilmişse
   return { title: s.trim(), artist: "" };
 }
 
@@ -52,7 +49,6 @@ function parseSongInput(text) {
   const t = (text || "").trim();
   if (!t) return [];
 
-  // 1) JSON dene
   try {
     const json = JSON.parse(t);
     if (Array.isArray(json)) {
@@ -68,11 +64,8 @@ function parseSongInput(text) {
         })
         .filter(Boolean);
     }
-  } catch (_) {
-    // JSON değilse devam
-  }
+  } catch (_) {}
 
-  // 2) Düz metin: satır satır
   return t
     .split("\n")
     .map((line) => normalizeLine(line))
@@ -83,13 +76,10 @@ export default function Builder() {
   const navigate = useNavigate();
 
   const [name, setName] = useState("");
-  const [isPublic, setIsPublic] = useState(false); // false => private
   const [raw, setRaw] = useState("");
-
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState([]);
   const [error, setError] = useState("");
-
   const [showExamples, setShowExamples] = useState(false);
 
   const parsed = useMemo(() => parseSongInput(raw), [raw]);
@@ -125,8 +115,12 @@ export default function Builder() {
       pushLog("Spotify hesabı doğrulanıyor...");
       const me = await getMe(token);
 
-      pushLog(`Playlist oluşturuluyor: "${name.trim()}" (${isPublic ? "Public" : "Private"})`);
-      const playlist = await createPlaylist(token, me.id, { name: name.trim(), isPublic });
+      pushLog(`Playlist oluşturuluyor: "${name.trim()}"`);
+      const playlist = await createPlaylist(token, me.id, {
+        name: name.trim(),
+        // Seçim kaldırıldı. Spotify tarafı sende her türlü public olduğu için burada sabitliyoruz.
+        isPublic: true,
+      });
 
       pushLog("Şarkılar aranıyor...");
       const foundUris = [];
@@ -134,13 +128,19 @@ export default function Builder() {
 
       for (let i = 0; i < parsed.length; i++) {
         const item = parsed[i];
-        pushLog(`(${i + 1}/${parsed.length}) Aranıyor: ${item.title}${item.artist ? " — " + item.artist : ""}`);
+        pushLog(
+          `(${i + 1}/${parsed.length}) Aranıyor: ${item.title}${item.artist ? " — " + item.artist : ""}`
+        );
         const track = await searchTrack(token, item);
         if (track?.uri) foundUris.push(track.uri);
         else notFound.push(item);
       }
 
       pushLog(`Bulunan şarkı: ${foundUris.length}/${parsed.length}`);
+
+      sessionStorage.setItem("last_total", String(parsed.length));
+      sessionStorage.setItem("last_found", String(foundUris.length));
+      sessionStorage.setItem("last_not_found_count", String(notFound.length));
 
       if (foundUris.length > 0) {
         pushLog("Playlist'e ekleme başlıyor (100'lü paketler)...");
@@ -174,42 +174,18 @@ export default function Builder() {
 
       <main className="card formCard">
         <h1>Playlist Oluştur</h1>
-        <p className="sub">Playlist adını yaz, public/private seç, şarkı listesini yapıştır.</p>
+        <p className="sub">Playlist adını yaz ve şarkı listesini yapıştır.</p>
 
-        <div className="grid">
-          <label className="field">
-            <span>Playlist adı</span>
-            <input
-              className="input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Örn: Gece Sürüşü"
-              disabled={busy}
-            />
-          </label>
-
-          <label className="field">
-            <span>Görünürlük</span>
-            <div className="seg">
-              <button
-                className={`segBtn ${!isPublic ? "active" : ""}`}
-                type="button"
-                onClick={() => setIsPublic(false)}
-                disabled={busy}
-              >
-                Private
-              </button>
-              <button
-                className={`segBtn ${isPublic ? "active" : ""}`}
-                type="button"
-                onClick={() => setIsPublic(true)}
-                disabled={busy}
-              >
-                Public
-              </button>
-            </div>
-          </label>
-        </div>
+        <label className="field">
+          <span>Playlist adı</span>
+          <input
+            className="input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Örn: Gece Sürüşü"
+            disabled={busy}
+          />
+        </label>
 
         <div className="actionsRow" style={{ marginTop: 12 }}>
           <button

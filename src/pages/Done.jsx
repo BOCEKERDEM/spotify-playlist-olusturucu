@@ -3,14 +3,23 @@ import { useNavigate } from "react-router-dom";
 
 export default function Done() {
   const navigate = useNavigate();
+
   const playlistUrl = sessionStorage.getItem("last_playlist_url") || "";
+
+  const total = Number(sessionStorage.getItem("last_total") || "0");
+  const found = Number(sessionStorage.getItem("last_found") || "0");
+  const notFoundCountStored = Number(sessionStorage.getItem("last_not_found_count") || "0");
+
   const notFound = useMemo(() => {
     try {
-      return JSON.parse(sessionStorage.getItem("last_not_found") || "[]");
+      const arr = JSON.parse(sessionStorage.getItem("last_not_found") || "[]");
+      return Array.isArray(arr) ? arr : [];
     } catch {
       return [];
     }
   }, []);
+
+  const notFoundCount = notFound.length || notFoundCountStored;
 
   return (
     <div className="page">
@@ -19,7 +28,12 @@ export default function Done() {
 
       <main className="card">
         <h1>Tamamlandı</h1>
-        <p className="sub">Playlist oluşturuldu ve bulunan şarkılar eklendi.</p>
+
+        <p className="sub">
+          {total > 0
+            ? `${found} şarkı bulundu, ${notFoundCount} şarkı bulunamadı.`
+            : "Playlist oluşturuldu ve bulunan şarkılar eklendi."}
+        </p>
 
         {playlistUrl && (
           <a className="btn" href={playlistUrl} target="_blank" rel="noreferrer">
@@ -33,7 +47,8 @@ export default function Done() {
             <ul className="logList">
               {notFound.map((x, i) => (
                 <li key={i}>
-                  {x.title}{x.artist ? ` — ${x.artist}` : ""}
+                  {x.title}
+                  {x.artist ? ` — ${x.artist}` : ""}
                 </li>
               ))}
             </ul>
