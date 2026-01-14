@@ -11,16 +11,17 @@ export default function Callback() {
       try {
         const params = new URLSearchParams(window.location.search);
         const code = params.get("code");
+        const state = params.get("state");
         const error = params.get("error");
 
         if (error) throw new Error(error);
         if (!code) throw new Error("code yok. Tekrar giriş yapın.");
 
-        const tokenData = await exchangeCodeForToken(code);
+        const tokenData = await exchangeCodeForToken(code, state);
         sessionStorage.setItem("spotify_access_token", tokenData.access_token);
 
         setMsg("Başarılı. Yönlendiriliyorsun...");
-        navigate("/builder", { replace: true });
+        navigate("/choose", { replace: true });
       } catch (e) {
         setMsg(`Hata: ${e.message}`);
       }

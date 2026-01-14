@@ -3,7 +3,9 @@ const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
 // Hangi adresten açtıysan callback oraya döner (Cloudflare tunnel dahil)
 const REDIRECT_URI = `${window.location.origin}/callback`;
 
-const SCOPES = ["user-read-private", "playlist-modify-private", "playlist-modify-public"];
+// Public/Private seçimi kaldırıldı. Playlist her zaman public.
+// Bu nedenle yalnızca playlist-modify-public yeterli.
+const SCOPES = ["user-read-private", "playlist-modify-public"];
 
 function base64UrlEncode(buffer) {
   return btoa(String.fromCharCode(...new Uint8Array(buffer)))
@@ -60,7 +62,7 @@ export async function exchangeCodeForToken(code, returnedState) {
   const verifier = sessionStorage.getItem("spotify_pkce_verifier");
   if (!verifier) throw new Error("PKCE verifier yok. Tekrar giriş yapın.");
 
-  // State doğrulama (Callback sayfasında returnedState göndereceğiz)
+  // State doğrulama (Callback sayfasında returnedState gönderiyoruz)
   const expectedState = sessionStorage.getItem("spotify_oauth_state");
   if (expectedState && returnedState && expectedState !== returnedState) {
     throw new Error("OAuth state uyuşmuyor. Güvenlik nedeniyle işlem iptal edildi.");

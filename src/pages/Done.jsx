@@ -56,9 +56,14 @@ export default function Done() {
         )}
 
         <div className="actionsRow" style={{ marginTop: 16 }}>
+          <button className="btn" onClick={() => navigate("/export")}>
+            Playlist’ten text çıkar
+          </button>
+
           <button className="btn secondary" onClick={() => navigate("/builder")}>
             Yeni playlist oluştur
           </button>
+
           <button
             className="btn secondary"
             onClick={() => {

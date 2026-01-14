@@ -118,8 +118,6 @@ export default function Builder() {
       pushLog(`Playlist oluşturuluyor: "${name.trim()}"`);
       const playlist = await createPlaylist(token, me.id, {
         name: name.trim(),
-        // Seçim kaldırıldı. Spotify tarafı sende her türlü public olduğu için burada sabitliyoruz.
-        isPublic: true,
       });
 
       pushLog("Şarkılar aranıyor...");
