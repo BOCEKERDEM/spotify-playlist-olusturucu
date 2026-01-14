@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { exportPlaylistToText } from "../spotifyApi";
 
@@ -6,15 +6,12 @@ function extractPlaylistId(input) {
   const s = (input || "").trim();
   if (!s) return "";
 
-  // spotify:playlist:ID
   const uriMatch = s.match(/spotify:playlist:([a-zA-Z0-9]+)/);
   if (uriMatch) return uriMatch[1];
 
-  // https://open.spotify.com/playlist/ID?...  veya  /playlist/ID
   const urlMatch = s.match(/playlist\/([a-zA-Z0-9]+)/);
   if (urlMatch) return urlMatch[1];
 
-  // direkt ID yazmış olabilir
   if (/^[a-zA-Z0-9]{10,}$/.test(s)) return s;
 
   return "";
@@ -23,6 +20,8 @@ function extractPlaylistId(input) {
 export default function Export() {
   const navigate = useNavigate();
 
+  const [needsLogin, setNeedsLogin] = useState(false);
+
   const [playlistInput, setPlaylistInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -30,6 +29,12 @@ export default function Export() {
   const [output, setOutput] = useState("");
 
   const playlistId = useMemo(() => extractPlaylistId(playlistInput), [playlistInput]);
+
+  // Sayfaya direkt girilirse token yoksa ekranı kilitle.
+  useEffect(() => {
+    const token = sessionStorage.getItem("spotify_access_token");
+    if (!token) setNeedsLogin(true);
+  }, []);
 
   function pushLog(line) {
     setLog((p) => [...p, line]);
@@ -42,8 +47,8 @@ export default function Export() {
 
     const token = sessionStorage.getItem("spotify_access_token");
     if (!token) {
-      setError("Giriş bilgisi yok. Lütfen tekrar Spotify ile giriş yapın.");
-      navigate("/", { replace: true });
+      setNeedsLogin(true);
+      setError("Giriş bilgisi yok. Lütfen Spotify ile giriş yapın.");
       return;
     }
 
@@ -76,6 +81,29 @@ export default function Export() {
     } catch {
       pushLog("Kopyalama başarısız. Çıktıyı seçip manuel kopyalayabilirsin.");
     }
+  }
+
+  // LOGIN GEREKLİ EKRANI
+  if (needsLogin) {
+    return (
+      <div className="page">
+        <div className="bg-blur a" />
+        <div className="bg-blur b" />
+
+        <main className="card formCard">
+          <h1>Giriş gerekli</h1>
+          <p className="sub">Bu sayfayı kullanmak için önce Spotify ile giriş yapmalısın.</p>
+
+          {error && <div className="errorBox">{error}</div>}
+
+          <div className="actionsRow" style={{ marginTop: 12 }}>
+            <button className="btn" type="button" onClick={() => navigate("/", { replace: true })}>
+              Spotify ile giriş yap
+            </button>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   return (
@@ -112,8 +140,8 @@ export default function Export() {
             Kopyala
           </button>
 
-          <button className="btn secondary" type="button" disabled={busy} onClick={() => navigate("/builder")}>
-            Playlist oluşturucuya dön
+          <button className="btn secondary" type="button" disabled={busy} onClick={() => navigate("/choose")}>
+            Menüye dön
           </button>
         </div>
 

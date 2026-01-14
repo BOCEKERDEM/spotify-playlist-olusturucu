@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { addTracksToPlaylist, createPlaylist, getMe, searchTrack } from "../spotifyApi";
 
@@ -75,6 +75,8 @@ function parseSongInput(text) {
 export default function Builder() {
   const navigate = useNavigate();
 
+  const [needsLogin, setNeedsLogin] = useState(false);
+
   const [name, setName] = useState("");
   const [raw, setRaw] = useState("");
   const [busy, setBusy] = useState(false);
@@ -83,6 +85,12 @@ export default function Builder() {
   const [showExamples, setShowExamples] = useState(false);
 
   const parsed = useMemo(() => parseSongInput(raw), [raw]);
+
+  // Sayfaya direkt girilirse token yoksa ekranı kilitle.
+  useEffect(() => {
+    const token = sessionStorage.getItem("spotify_access_token");
+    if (!token) setNeedsLogin(true);
+  }, []);
 
   function pushLog(line) {
     setLog((prev) => [...prev, line]);
@@ -94,8 +102,8 @@ export default function Builder() {
 
     const token = sessionStorage.getItem("spotify_access_token");
     if (!token) {
-      setError("Giriş bilgisi yok. Lütfen tekrar Spotify ile giriş yapın.");
-      navigate("/", { replace: true });
+      setNeedsLogin(true);
+      setError("Giriş bilgisi yok. Lütfen Spotify ile giriş yapın.");
       return;
     }
 
@@ -163,6 +171,29 @@ export default function Builder() {
     } finally {
       setBusy(false);
     }
+  }
+
+  // LOGIN GEREKLİ EKRANI
+  if (needsLogin) {
+    return (
+      <div className="page">
+        <div className="bg-blur a" />
+        <div className="bg-blur b" />
+
+        <main className="card formCard">
+          <h1>Giriş gerekli</h1>
+          <p className="sub">Bu sayfayı kullanmak için önce Spotify ile giriş yapmalısın.</p>
+
+          {error && <div className="errorBox">{error}</div>}
+
+          <div className="actionsRow" style={{ marginTop: 12 }}>
+            <button className="btn" type="button" onClick={() => navigate("/", { replace: true })}>
+              Spotify ile giriş yap
+            </button>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   return (
