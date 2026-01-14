@@ -268,16 +268,8 @@ export default function Builder() {
             {busy ? "Oluşturuluyor..." : "Oluştur"}
           </button>
 
-          <button
-            className="btn secondary"
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              sessionStorage.removeItem("spotify_access_token");
-              navigate("/", { replace: true });
-            }}
-          >
-            Çıkış
+          <button className="btn secondary" type="button" disabled={busy} onClick={() => navigate("/choose")}>
+            Menüye dön
           </button>
         </div>
 
